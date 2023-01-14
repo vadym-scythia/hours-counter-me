@@ -1,7 +1,4 @@
-﻿//12:38 pm 12Dec2022
-//12:48 pm 13Dec2022
-
-using System.Text.RegularExpressions;
+﻿using System.Text.RegularExpressions;
 
 const string countFilePath = "count.txt";
 const string currentFilePath = "current.txt";
@@ -16,16 +13,17 @@ while (true)
     Console.WriteLine("1 - Add/finish current session");
     Console.WriteLine("2 - Show current session");
     Console.WriteLine("3 - Show history of sessions");
-    Console.WriteLine("4 - Show hours count");
-    Console.WriteLine("5 - Add count data manually");
+    Console.WriteLine("4 - Add count data manually");
+    Console.WriteLine("5 - Show hours count");
     Console.WriteLine("6 - Create backup");
-    Console.WriteLine("7 - Exit");
+    Console.WriteLine("7 - Import backup");
+    Console.WriteLine("8 - Exit");
     var userInput = Console.ReadLine();
 
     switch (userInput)
     {
         case "1":
-            ProcessCurrentSession();
+            CreateCurrentSession();
             break;
         case "2":
             ShowCurrentSession();
@@ -34,16 +32,19 @@ while (true)
             ShowSessionsHistory();
             break;
         case "4":
+            AddCountDataManually();
             Console.WriteLine(File.ReadAllText(countFilePath));
             break;
         case "5":
-            ProcessManualCountDataAdding();
             Console.WriteLine(File.ReadAllText(countFilePath));
             break;
         case "6":
-            ProcessBackupCreation();
+            CreateBackup();
             break;
         case "7":
+            ImportBackup();
+            break;
+        case "8":
             Console.WriteLine("Bye-bye!");
             return;
         default:
@@ -52,7 +53,7 @@ while (true)
     }
 }
 
-void ProcessBackupCreation()
+void ImportBackup()
 {
     Console.WriteLine("Input backup directory path:");
     var backupDirPath = Console.ReadLine();
@@ -63,12 +64,31 @@ void ProcessBackupCreation()
     }
     else
     {
+        if (File.Exists(countFilePath))
+        {
+            File.Delete(countFilePath);
+        }
+
+        if (File.Exists(currentFilePath))
+        {
+            File.Delete(currentFilePath);
+        }
+
+        if (File.Exists(historyFilePath))
+        {
+            File.Delete(historyFilePath);
+        }
+
+        var countFileBackupPath = backupDirPath + @"\count.txt";
+        var currentFileBackupPath = backupDirPath + @"\current.txt";
+        var historyFileBackupPath = backupDirPath + @"\history.txt";
+
         try
         {
-            File.Copy(countFilePath, backupDirPath + @"\count.txt");
-            File.Copy(currentFilePath, backupDirPath + @"\current.txt");
-            File.Copy(historyFilePath, backupDirPath + @"\history.txt");
-            Console.WriteLine("Successfully copied.");
+            File.Copy(countFileBackupPath, countFilePath);
+            File.Copy(currentFileBackupPath, currentFilePath);
+            File.Copy(historyFileBackupPath, historyFilePath);
+            Console.WriteLine("Successfully imported files.");
         }
         catch (Exception e)
         {
@@ -77,7 +97,46 @@ void ProcessBackupCreation()
     }
 }
 
-void ProcessManualCountDataAdding()
+void CreateBackup()
+{
+    Console.WriteLine("Input backup directory path:");
+    var backupDirPath = Console.ReadLine();
+
+    if (backupDirPath == null || backupDirPath.Equals(string.Empty))
+    {
+        Console.WriteLine("Backup directory path is null or empty!");
+    }
+    else
+    {
+        var countFileBackupPath = backupDirPath + @"\count.txt";
+        var currentFileBackupPath = backupDirPath + @"\current.txt";
+        var historyFileBackupPath = backupDirPath + @"\history.txt";
+
+        try
+        {
+            File.Copy(countFilePath, countFileBackupPath);
+            File.Copy(currentFilePath, currentFileBackupPath);
+            File.Copy(historyFilePath, historyFileBackupPath);
+            Console.WriteLine("Successfully copied.");
+        }
+        catch (IOException)
+        {
+            File.Delete(countFileBackupPath);
+            File.Delete(currentFileBackupPath);
+            File.Delete(historyFileBackupPath);
+            File.Copy(countFilePath, countFileBackupPath);
+            File.Copy(currentFilePath, currentFileBackupPath);
+            File.Copy(historyFilePath, historyFileBackupPath);
+            Console.WriteLine("Successfully deleted previous version of file and copied.");
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+    }
+}
+
+void AddCountDataManually()
 {
     Console.WriteLine("Input data in this format HH:MM");
     var timeToAddInString = Console.ReadLine();
@@ -96,7 +155,7 @@ void ProcessManualCountDataAdding()
     }
 }
 
-void ProcessCurrentSession()
+void CreateCurrentSession()
 {
     var fileData = File.ReadAllText(currentFilePath);
 
@@ -106,6 +165,7 @@ void ProcessCurrentSession()
         {
             var currentSessionFirstPart = GetCurrentSessionPart(true);
             File.WriteAllText(currentFilePath, currentSessionFirstPart);
+            Console.WriteLine("Successfully added first part of the current session.");
         }
         catch (Exception ex)
         {
@@ -122,6 +182,7 @@ void ProcessCurrentSession()
             var fullSession = $"{currentSessionFirstPart} - {currentSessionLastPart}";
             File.AppendAllText(historyFilePath, $"\n{fullSession}");
             File.WriteAllText(currentFilePath, string.Empty);
+            Console.WriteLine("Successfully added second part of the current session and finished it.");
         }
         catch (Exception ex)
         {
